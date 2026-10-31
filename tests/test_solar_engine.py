@@ -490,3 +490,110 @@ def test_above_horizon_matches_sunrise_and_sunset(elevation: float) -> None:
     assert engine.calculate(day.sunrise + margin).is_above_horizon
     assert engine.calculate(day.sunset - margin).is_above_horizon
     assert not engine.calculate(day.sunset + margin).is_above_horizon
+
+
+def _angle_between(a: float, b: float) -> float:
+    return abs((a - b + 180.0) % 360.0 - 180.0)
+
+
+@pytest.mark.parametrize(
+    "coordinates", [PARIS, TROMSO, AUCKLAND], ids=["paris", "tromso", "auckland"]
+)
+def test_event_azimuths_are_the_sun_azimuth_at_each_event(
+    coordinates: tuple[float, float],
+) -> None:
+    engine = SolarEngine(*coordinates)
+    for day in range(0, 366, 15):
+        moment = datetime(2024, 1, 1, 12, tzinfo=timezone.utc) + timedelta(days=day)
+        data = engine.calculate(moment)
+        happening = {
+            name for name in data.event_azimuths if getattr(data, name) is not None
+        }
+        assert happening == set(data.event_azimuths)
+        for name, azimuth in data.event_azimuths.items():
+            # Due north rounds to 0.0°, never to 360.0°
+            assert 0.0 <= azimuth < 360.0, name
+            at_event = engine.calculate(getattr(data, name)).azimuth
+            assert _angle_between(azimuth, at_event) < 0.02, name
+
+
+def test_noon_and_midnight_azimuths() -> None:
+    """The Sun is due south at noon and due north at midnight north of the tropics,
+    and the other way round in the south."""
+    moment = datetime(2024, 3, 20, 12, tzinfo=timezone.utc)
+    paris = SolarEngine(*PARIS).calculate(moment).event_azimuths
+    assert _angle_between(paris["solar_noon"], 180.0) < 0.05
+    assert _angle_between(paris["solar_midnight"], 0.0) < 0.05
+
+    auckland = SolarEngine(*AUCKLAND).calculate(moment).event_azimuths
+    assert _angle_between(auckland["solar_noon"], 0.0) < 0.05
+    assert _angle_between(auckland["solar_midnight"], 180.0) < 0.05
+
+
+def test_degrees_to_hms() -> None:
+    to_hms = solar_engine.degrees_to_hms
+    # Meeus Example 25.a: α = 198.38083° = 13h13m31.4s
+    assert to_hms(198.38083) == "13h 13m 31.4s"
+    assert to_hms(0.0) == "00h 00m 00.0s"
+    assert to_hms(15.0) == "01h 00m 00.0s"
+    # Rounding up to the next minute, hour and day
+    assert to_hms(14.99999) == "01h 00m 00.0s"
+    assert to_hms(359.99999) == "00h 00m 00.0s"
+    assert to_hms(-15.0) == "23h 00m 00.0s"
+
+
+def test_distance_in_km() -> None:
+    """2024 perihelion and aphelion, as PyEphem gives them: the low-accuracy series
+    (Meeus Chapter 25) stays within 5e-5 AU, about 7500 km."""
+    engine = SolarEngine(*PARIS)
+    for moment, au in (
+        (datetime(2024, 1, 3, 0, 39, tzinfo=timezone.utc), 0.983307),
+        (datetime(2024, 7, 5, 5, 6, tzinfo=timezone.utc), 1.016726),
+    ):
+        data = engine.calculate(moment)
+        assert data.sun_distance_au == pytest.approx(au, abs=5e-5)
+        assert data.sun_distance_km == pytest.approx(
+            data.sun_distance_au * solar_engine.ASTRONOMICAL_UNIT_KM, abs=150
+        )
+
+
+# When the Sun enters each constellation in 2024, by PyEphem's IAU boundaries
+CONSTELLATION_ENTRIES_2024 = (
+    ("2024-01-20T13:46", "capricornus"),
+    ("2024-02-17T00:19", "aquarius"),
+    ("2024-03-12T01:52", "pisces"),
+    ("2024-04-18T13:52", "aries"),
+    ("2024-05-14T01:17", "taurus"),
+    ("2024-06-21T08:48", "gemini"),
+    ("2024-07-20T13:37", "cancer"),
+    ("2024-08-10T12:39", "leo"),
+    ("2024-09-16T13:55", "virgo"),
+    ("2024-10-31T02:15", "libra"),
+    ("2024-11-23T05:15", "scorpius"),
+    ("2024-11-29T17:11", "ophiuchus"),
+    ("2024-12-18T00:42", "sagittarius"),
+)
+
+
+def test_constellation_through_the_year() -> None:
+    """The Sun crosses 13 constellations, Ophiuchus included, within 15 min."""
+    engine = SolarEngine(*PARIS)
+    margin = timedelta(minutes=15)
+    previous = CONSTELLATION_ENTRIES_2024[-1][1]
+    for entry, name in CONSTELLATION_ENTRIES_2024:
+        moment = datetime.fromisoformat(entry).replace(tzinfo=timezone.utc)
+        assert engine.calculate(moment - margin).constellation == previous, name
+        assert engine.calculate(moment + margin).constellation == name, name
+        previous = name
+
+
+@pytest.mark.parametrize(
+    "entry", ["1950-11-23T04:53", "2100-11-24T17:45"], ids=["1950", "2100"]
+)
+def test_scorpius_boundary_drifts(entry: str) -> None:
+    """The ecliptic slides along the slanted Libra-Scorpius boundary over time."""
+    engine = SolarEngine(*PARIS)
+    moment = datetime.fromisoformat(entry).replace(tzinfo=timezone.utc)
+    margin = timedelta(minutes=15)
+    assert engine.calculate(moment - margin).constellation == "libra"
+    assert engine.calculate(moment + margin).constellation == "scorpius"

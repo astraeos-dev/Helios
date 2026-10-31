@@ -34,13 +34,41 @@
         "name": "Déclinaison"
       },
       "right_ascension": {
-        "name": "Ascension droite"
+        "name": "Ascension droite",
+        "state_attributes": {
+          "hms": {
+            "name": "Heures, minutes, secondes"
+          }
+        }
       },
       "equation_of_time": {
         "name": "Équation du temps"
       },
       "sun_distance_au": {
-        "name": "Distance Terre-Soleil"
+        "name": "Distance",
+        "state_attributes": {
+          "distance_km": {
+            "name": "Distance (km)"
+          }
+        }
+      },
+      "constellation": {
+        "name": "Constellation",
+        "state": {
+          "aries": "Bélier",
+          "taurus": "Taureau",
+          "gemini": "Gémeaux",
+          "cancer": "Cancer",
+          "leo": "Lion",
+          "virgo": "Vierge",
+          "libra": "Balance",
+          "scorpius": "Scorpion",
+          "ophiuchus": "Ophiuchus",
+          "sagittarius": "Sagittaire",
+          "capricornus": "Capricorne",
+          "aquarius": "Verseau",
+          "pisces": "Poissons"
+        }
       },
       "day_length": {
         "name": "Durée du jour"
@@ -49,46 +77,116 @@
         "name": "Jour Julien"
       },
       "solar_noon": {
-        "name": "Midi solaire"
+        "name": "Midi solaire",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "solar_midnight": {
-        "name": "Minuit solaire"
+        "name": "Minuit solaire",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "sunrise": {
-        "name": "Lever du soleil"
+        "name": "Lever du soleil",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "sunset": {
-        "name": "Coucher du soleil"
+        "name": "Coucher du soleil",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "civil_dawn": {
-        "name": "Aube civile"
+        "name": "Aube civile",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "civil_dusk": {
-        "name": "Crépuscule civil"
+        "name": "Crépuscule civil",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "nautical_dawn": {
-        "name": "Aube nautique"
+        "name": "Aube nautique",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "nautical_dusk": {
-        "name": "Crépuscule nautique"
+        "name": "Crépuscule nautique",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "astronomical_dawn": {
-        "name": "Aube astronomique"
+        "name": "Aube astronomique",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "astronomical_dusk": {
-        "name": "Crépuscule astronomique"
+        "name": "Crépuscule astronomique",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "blue_hour_dawn": {
-        "name": "Fin de l'heure bleue du matin"
+        "name": "Fin de l'heure bleue du matin",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "blue_hour_dusk": {
-        "name": "Début de l'heure bleue du soir"
+        "name": "Début de l'heure bleue du soir",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "golden_hour_dawn": {
-        "name": "Fin de l'heure dorée du matin"
+        "name": "Fin de l'heure dorée du matin",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       },
       "golden_hour_dusk": {
-        "name": "Début de l'heure dorée du soir"
+        "name": "Début de l'heure dorée du soir",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimut"
+          }
+        }
       }
     },
     "binary_sensor": {

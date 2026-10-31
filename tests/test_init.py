@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import re
 
 import pytest
 
@@ -76,3 +77,32 @@ async def test_options_update_reloads_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     assert coordinator.engine.elevation_meters == 1000.0
     assert coordinator.update_interval == timedelta(seconds=120)
+
+
+async def test_sensor_attributes(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    registry = er.async_get(hass)
+
+    def state(key: str):
+        entity_id = registry.async_get_entity_id(
+            "sensor", DOMAIN, f"{entry.entry_id}_{key}"
+        )
+        return hass.states.get(entity_id)
+
+    assert re.fullmatch(
+        r"\d{2}h \d{2}m \d{2}\.\ds", state("right_ascension").attributes["hms"]
+    )
+    distance = state("sun_distance_au")
+    assert distance.name == "Home Distance"
+    assert distance.attributes["distance_km"] == pytest.approx(
+        float(distance.state) * 149_597_870.7, abs=150
+    )
+
+    constellation = state("constellation")
+    assert constellation.state in constellation.attributes["options"]
+
+    # Every event of the day carries the Sun's azimuth when it happens
+    for key in ("solar_noon", "solar_midnight", "civil_dawn", "golden_hour_dusk"):
+        assert 0.0 <= state(key).attributes["azimuth"] < 360.0, key
+    assert "azimuth" not in state("azimuth").attributes

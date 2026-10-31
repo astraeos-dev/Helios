@@ -23,7 +23,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import HeliosDataUpdateCoordinator
-from .solar_engine import SolarData
+from .solar_engine import SolarData, SolarEngine, degrees_to_hms
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -31,6 +31,17 @@ class HeliosSensorEntityDescription(SensorEntityDescription):
     """Describes a Helios sensor entity."""
 
     value_fn: Callable[[SolarData], Any]
+    attrs_fn: Callable[[SolarData], dict[str, Any]] | None = None
+
+
+def _event_azimuth(key: str) -> Callable[[SolarData], dict[str, Any]]:
+    """Return the attributes of an event sensor: the Sun's azimuth at the event."""
+
+    def attrs(data: SolarData) -> dict[str, Any]:
+        azimuth = data.event_azimuths.get(key)
+        return {} if azimuth is None else {"azimuth": azimuth}
+
+    return attrs
 
 
 SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
@@ -76,6 +87,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:orbit",
         value_fn=lambda data: data.right_ascension,
+        attrs_fn=lambda data: {"hms": degrees_to_hms(data.right_ascension)},
     ),
     HeliosSensorEntityDescription(
         key="equation_of_time",
@@ -93,6 +105,15 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:ruler",
         value_fn=lambda data: data.sun_distance_au,
+        attrs_fn=lambda data: {"distance_km": data.sun_distance_km},
+    ),
+    HeliosSensorEntityDescription(
+        key="constellation",
+        translation_key="constellation",
+        device_class=SensorDeviceClass.ENUM,
+        options=[name for _, _, name in SolarEngine.CONSTELLATION_BOUNDARIES],
+        icon="mdi:star-four-points",
+        value_fn=lambda data: data.constellation,
     ),
     HeliosSensorEntityDescription(
         key="day_length",
@@ -116,6 +137,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:weather-sunny-alert",
         value_fn=lambda data: data.solar_noon,
+        attrs_fn=_event_azimuth("solar_noon"),
     ),
     HeliosSensorEntityDescription(
         key="solar_midnight",
@@ -123,6 +145,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:weather-night",
         value_fn=lambda data: data.solar_midnight,
+        attrs_fn=_event_azimuth("solar_midnight"),
     ),
     HeliosSensorEntityDescription(
         key="sunrise",
@@ -130,6 +153,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:weather-sunset-up",
         value_fn=lambda data: data.sunrise,
+        attrs_fn=_event_azimuth("sunrise"),
     ),
     HeliosSensorEntityDescription(
         key="sunset",
@@ -137,6 +161,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:weather-sunset-down",
         value_fn=lambda data: data.sunset,
+        attrs_fn=_event_azimuth("sunset"),
     ),
     HeliosSensorEntityDescription(
         key="civil_dawn",
@@ -144,6 +169,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:weather-sunset-up",
         value_fn=lambda data: data.civil_dawn,
+        attrs_fn=_event_azimuth("civil_dawn"),
     ),
     HeliosSensorEntityDescription(
         key="civil_dusk",
@@ -151,6 +177,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:weather-sunset-down",
         value_fn=lambda data: data.civil_dusk,
+        attrs_fn=_event_azimuth("civil_dusk"),
     ),
     HeliosSensorEntityDescription(
         key="nautical_dawn",
@@ -159,6 +186,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-sunset-up",
         value_fn=lambda data: data.nautical_dawn,
+        attrs_fn=_event_azimuth("nautical_dawn"),
     ),
     HeliosSensorEntityDescription(
         key="nautical_dusk",
@@ -167,6 +195,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-sunset-down",
         value_fn=lambda data: data.nautical_dusk,
+        attrs_fn=_event_azimuth("nautical_dusk"),
     ),
     HeliosSensorEntityDescription(
         key="astronomical_dawn",
@@ -175,6 +204,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-night",
         value_fn=lambda data: data.astronomical_dawn,
+        attrs_fn=_event_azimuth("astronomical_dawn"),
     ),
     HeliosSensorEntityDescription(
         key="astronomical_dusk",
@@ -183,6 +213,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-night",
         value_fn=lambda data: data.astronomical_dusk,
+        attrs_fn=_event_azimuth("astronomical_dusk"),
     ),
     HeliosSensorEntityDescription(
         key="blue_hour_dawn",
@@ -191,6 +222,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-sunset-up",
         value_fn=lambda data: data.blue_hour_dawn,
+        attrs_fn=_event_azimuth("blue_hour_dawn"),
     ),
     HeliosSensorEntityDescription(
         key="blue_hour_dusk",
@@ -199,6 +231,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-sunset-down",
         value_fn=lambda data: data.blue_hour_dusk,
+        attrs_fn=_event_azimuth("blue_hour_dusk"),
     ),
     HeliosSensorEntityDescription(
         key="golden_hour_dawn",
@@ -207,6 +240,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-sunset-up",
         value_fn=lambda data: data.golden_hour_dawn,
+        attrs_fn=_event_azimuth("golden_hour_dawn"),
     ),
     HeliosSensorEntityDescription(
         key="golden_hour_dusk",
@@ -215,6 +249,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:weather-sunset-down",
         value_fn=lambda data: data.golden_hour_dusk,
+        attrs_fn=_event_azimuth("golden_hour_dusk"),
     ),
 )
 
@@ -236,6 +271,8 @@ class HeliosSensor(CoordinatorEntity[HeliosDataUpdateCoordinator], SensorEntity)
 
     entity_description: HeliosSensorEntityDescription
     _attr_has_entity_name = True
+    # Derived from the state at every update: not worth a copy in the database
+    _unrecorded_attributes = frozenset({"hms", "distance_km"})
 
     def __init__(
         self,
@@ -255,6 +292,13 @@ class HeliosSensor(CoordinatorEntity[HeliosDataUpdateCoordinator], SensorEntity)
         )
 
     @property
-    def native_value(self) -> float | datetime | None:
+    def native_value(self) -> float | str | datetime | None:
         """Return the state of the sensor."""
         return self.entity_description.value_fn(self.coordinator.data)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the attributes of the sensor, if it has any."""
+        if self.entity_description.attrs_fn is None:
+            return None
+        return self.entity_description.attrs_fn(self.coordinator.data)
