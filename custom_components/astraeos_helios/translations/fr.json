@@ -22,19 +22,19 @@
   "entity": {
     "sensor": {
       "azimuth": {
-        "name": "Azimut solaire"
+        "name": "Azimut"
       },
       "apparent_elevation": {
-        "name": "Élévation solaire apparente"
+        "name": "Élévation apparente"
       },
       "true_elevation": {
         "name": "Élévation géométrique vraie"
       },
       "declination": {
-        "name": "Déclinaison solaire"
+        "name": "Déclinaison"
       },
       "right_ascension": {
-        "name": "Ascension droite solaire"
+        "name": "Ascension droite"
       },
       "equation_of_time": {
         "name": "Équation du temps"
