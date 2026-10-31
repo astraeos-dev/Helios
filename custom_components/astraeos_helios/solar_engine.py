@@ -94,7 +94,9 @@ class SolarEngine:
     """Astronomical calculation engine for solar position and daily events."""
 
     # Standard altitude thresholds in degrees (Meeus Chapter 15, p. 101)
-    ALTITUDE_SUNRISE_SUNSET = -0.8333  # -50 arcminutes (refraction + solar semi-diameter)
+    ALTITUDE_SUNRISE_SUNSET = (
+        -0.8333
+    )  # -50 arcminutes (refraction + solar semi-diameter)
     ALTITUDE_CIVIL_TWILIGHT = -6.0
     ALTITUDE_NAUTICAL_TWILIGHT = -12.0
     ALTITUDE_ASTRONOMICAL_TWILIGHT = -18.0
@@ -209,14 +211,10 @@ class SolarEngine:
     def _solar_coordinates(t_century: float) -> dict[str, float]:
         """Compute solar coordinates for a given Julian Century T (Meeus Chapter 25 & 28)."""
         # Geometric Mean Longitude of the Sun L0 (Eq. 25.2)
-        l0 = (
-            280.46646 + t_century * (36000.76983 + 0.0003032 * t_century)
-        ) % 360.0
+        l0 = (280.46646 + t_century * (36000.76983 + 0.0003032 * t_century)) % 360.0
 
         # Mean Anomaly of the Sun M (Eq. 25.3)
-        m_deg = (
-            357.52911 + t_century * (35999.05029 - 0.0001537 * t_century)
-        ) % 360.0
+        m_deg = (357.52911 + t_century * (35999.05029 - 0.0001537 * t_century)) % 360.0
         m_rad = math.radians(m_deg)
 
         # Eccentricity of Earth's Orbit e (Eq. 25.4)
@@ -226,8 +224,7 @@ class SolarEngine:
 
         # Sun's Equation of the Center C (Chapter 25, p. 164)
         c_deg = (
-            (1.914602 - t_century * (0.004817 + 0.000014 * t_century))
-            * math.sin(m_rad)
+            (1.914602 - t_century * (0.004817 + 0.000014 * t_century)) * math.sin(m_rad)
             + (0.019993 - 0.000101 * t_century) * math.sin(2.0 * m_rad)
             + 0.000289 * math.sin(3.0 * m_rad)
         )
@@ -268,9 +265,7 @@ class SolarEngine:
         )
         right_ascension_deg = math.degrees(right_ascension_rad) % 360.0
 
-        declination_rad = math.asin(
-            math.sin(obliquity_rad) * math.sin(lambda_rad)
-        )
+        declination_rad = math.asin(math.sin(obliquity_rad) * math.sin(lambda_rad))
         declination_deg = math.degrees(declination_rad)
 
         # Equation of Time in minutes (Meeus Chapter 28, Eq. 28.3)
@@ -343,9 +338,9 @@ class SolarEngine:
             alt_rad = math.radians(target_altitude)
 
             # Hour angle H0 (Meeus Chapter 15, Eq. 15.1)
-            cos_h0 = (
-                math.sin(alt_rad) - math.sin(lat_rad) * math.sin(decl_rad)
-            ) / (math.cos(lat_rad) * math.cos(decl_rad))
+            cos_h0 = (math.sin(alt_rad) - math.sin(lat_rad) * math.sin(decl_rad)) / (
+                math.cos(lat_rad) * math.cos(decl_rad)
+            )
 
             # Check for circumpolar sun (polar day or polar night)
             if cos_h0 < -1.0 or cos_h0 > 1.0:
@@ -389,9 +384,7 @@ class SolarEngine:
             jd = jd_midnight + refined
             t_century = self.to_julian_century(jd)
             coords = self._solar_coordinates(t_century)
-            hour_angle, altitude = self._hour_angle_and_altitude(
-                jd, t_century, coords
-            )
+            hour_angle, altitude = self._hour_angle_and_altitude(jd, t_century, coords)
             if target_altitude is None:
                 offset = hour_angle
                 if abs(hour_angle) > 90.0:
@@ -502,9 +495,7 @@ class SolarEngine:
         ) % 360.0
 
         # Local Hour Angle H (East longitude is positive, Meeus Chapter 13)
-        hour_angle_deg = (
-            theta0 + self.longitude - coords["right_ascension"]
-        ) % 360.0
+        hour_angle_deg = (theta0 + self.longitude - coords["right_ascension"]) % 360.0
         if hour_angle_deg > 180.0:
             hour_angle_deg -= 360.0
 
@@ -512,9 +503,9 @@ class SolarEngine:
         decl_rad = math.radians(coords["declination"])
 
         # True Altitude h0 (Meeus Chapter 13, Eq. 13.6)
-        sin_h0 = math.sin(lat_rad) * math.sin(decl_rad) + math.cos(
-            lat_rad
-        ) * math.cos(decl_rad) * math.cos(math.radians(hour_angle_deg))
+        sin_h0 = math.sin(lat_rad) * math.sin(decl_rad) + math.cos(lat_rad) * math.cos(
+            decl_rad
+        ) * math.cos(math.radians(hour_angle_deg))
         sin_h0 = max(-1.0, min(1.0, sin_h0))
         return hour_angle_deg, math.degrees(math.asin(sin_h0))
 
@@ -580,9 +571,7 @@ class SolarEngine:
             ) / math.tan(math.radians(-true_elevation_deg))
         return refraction_deg
 
-    def calculate(
-        self, dt_utc: datetime, local_date: date | None = None
-    ) -> SolarData:
+    def calculate(self, dt_utc: datetime, local_date: date | None = None) -> SolarData:
         """Compute complete solar position and daily solar events for a UTC datetime.
 
         Daily events belong to the solar day containing dt_utc (see _solar_date).
