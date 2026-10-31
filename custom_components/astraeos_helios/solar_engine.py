@@ -10,6 +10,18 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 import math
 
+# Astronomical unit in kilometres (IAU 2012 Resolution B2)
+ASTRONOMICAL_UNIT_KM = 149_597_870.7
+
+
+def degrees_to_hms(degrees: float) -> str:
+    """Return an angle as hours, minutes and seconds of time, such as "13h 13m 31.4s"."""
+    # Tenths of a second of time: 1° = 4 min = 2400 tenths
+    tenths = round(degrees % 360.0 * 2400.0) % 864_000
+    hours, tenths = divmod(tenths, 36_000)
+    minutes, tenths = divmod(tenths, 600)
+    return f"{hours:02d}h {minutes:02d}m {tenths / 10:04.1f}s"
+
 
 @dataclass(frozen=True)
 class SolarData:
@@ -28,6 +40,8 @@ class SolarData:
     declination: float
     equation_of_time: float
     sun_distance_au: float
+    sun_distance_km: float
+    constellation: str
     hour_angle: float
     true_elevation: float
     apparent_elevation: float
@@ -47,6 +61,8 @@ class SolarData:
     blue_hour_dusk: datetime | None
     golden_hour_dawn: datetime | None
     golden_hour_dusk: datetime | None
+    # Azimuth of the Sun at each daily event above, keyed by its field name
+    event_azimuths: dict[str, float]
     is_above_horizon: bool
     is_golden_hour: bool
     is_blue_hour: bool
@@ -94,6 +110,25 @@ class SolarEngine:
     # smaller ones (under 10 ms) end the refinement
     MAX_EVENT_CORRECTION = 10.0 / 1440.0
     EVENT_PRECISION = 1e-7
+
+    # Where the Sun enters each constellation along the ecliptic: J2000.0 ecliptic
+    # longitude in 2000 and its drift in degrees per century, as the ecliptic moves
+    # against the IAU boundaries. Found with PyEphem's IAU boundaries, 1900 to 2100.
+    CONSTELLATION_BOUNDARIES: tuple[tuple[float, float, str], ...] = (
+        (28.6869, -0.0028, "aries"),
+        (53.4172, -0.0030, "taurus"),
+        (90.1401, -0.0002, "gemini"),
+        (117.9880, 0.0021, "cancer"),
+        (138.0384, 0.0025, "leo"),
+        (173.8508, 0.0, "virgo"),
+        (217.8100, -0.0031, "libra"),
+        (241.0486, 0.0543, "scorpius"),
+        (247.6377, -0.0022, "ophiuchus"),
+        (266.2376, -0.0006, "sagittarius"),
+        (299.6561, 0.0022, "capricornus"),
+        (327.4876, 0.0022, "aquarius"),
+        (351.6505, -0.0018, "pisces"),
+    )
 
     def __init__(
         self,
@@ -483,6 +518,48 @@ class SolarEngine:
         sin_h0 = max(-1.0, min(1.0, sin_h0))
         return hour_angle_deg, math.degrees(math.asin(sin_h0))
 
+    def _azimuth(self, hour_angle_deg: float, declination_deg: float) -> float:
+        """Return the azimuth of the Sun in degrees, North = 0°, East = 90°."""
+        hour_angle_rad = math.radians(hour_angle_deg)
+        lat_rad = math.radians(self.latitude)
+        # Azimuth A measured from South (Meeus Chapter 13, Eq. 13.5), converted to North=0°
+        azimuth_south_rad = math.atan2(
+            math.sin(hour_angle_rad),
+            math.cos(hour_angle_rad) * math.sin(lat_rad)
+            - math.tan(math.radians(declination_deg)) * math.cos(lat_rad),
+        )
+        return (math.degrees(azimuth_south_rad) + 180.0) % 360.0
+
+    @staticmethod
+    def _round_azimuth(azimuth_deg: float) -> float:
+        """Round an azimuth to 0.01°, keeping 359.999° at 0.0° rather than 360.0°."""
+        return round(azimuth_deg, 2) % 360.0
+
+    def _azimuth_at(self, moment: datetime) -> float:
+        """Return the azimuth of the Sun in degrees at a given moment."""
+        jd = self.to_julian_day(moment)
+        t_century = self.to_julian_century(jd)
+        coords = self._solar_coordinates(t_century)
+        hour_angle_deg, _ = self._hour_angle_and_altitude(jd, t_century, coords)
+        return self._azimuth(hour_angle_deg, coords["declination"])
+
+    @classmethod
+    def _constellation(cls, true_longitude: float, t_century: float) -> str:
+        """Return the constellation the Sun is in, by its J2000.0 ecliptic longitude.
+
+        The true longitude of date loses the general precession in longitude since
+        J2000.0 (Meeus Chapter 21, Eq. 21.5). Without aberration, as the boundaries
+        were found: the Sun changes constellation within 10 min of PyEphem.
+        """
+        precession_arcsec = (5029.0966 + 1.11113 * t_century) * t_century
+        longitude = (true_longitude - precession_arcsec / 3600.0) % 360.0
+        constellation = cls.CONSTELLATION_BOUNDARIES[-1][2]
+        for start, drift, name in cls.CONSTELLATION_BOUNDARIES:
+            if longitude < start + drift * t_century:
+                break
+            constellation = name
+        return constellation
+
     @classmethod
     def _refraction(cls, true_elevation_deg: float) -> float:
         """Return atmospheric refraction in degrees for a true (geometric) altitude.
@@ -526,22 +603,13 @@ class SolarEngine:
         hour_angle_deg, true_elevation_deg = self._hour_angle_and_altitude(
             jd, t_century, coords
         )
-        hour_angle_rad = math.radians(hour_angle_deg)
-        lat_rad = math.radians(self.latitude)
-        decl_rad = math.radians(coords["declination"])
 
         # Atmospheric Refraction R (Saemundsson's formula, Meeus Chapter 16, Eq. 16.4)
         apparent_elevation_deg = true_elevation_deg + self._refraction(
             true_elevation_deg
         )
 
-        # Azimuth A measured from South (Meeus Chapter 13, Eq. 13.5), converted to North=0°
-        azimuth_south_rad = math.atan2(
-            math.sin(hour_angle_rad),
-            math.cos(hour_angle_rad) * math.sin(lat_rad)
-            - math.tan(decl_rad) * math.cos(lat_rad),
-        )
-        azimuth_deg = (math.degrees(azimuth_south_rad) + 180.0) % 360.0
+        azimuth_deg = self._azimuth(hour_angle_deg, coords["declination"])
 
         # Daily solar time events
         solar_noon = self._calculate_event_time(local_date, 0.0, None)
@@ -585,6 +653,28 @@ class SolarEngine:
 
         day_length_min = self._calculate_day_length(solar_noon, sunrise, sunset)
 
+        events = {
+            "solar_noon": solar_noon,
+            "solar_midnight": solar_midnight,
+            "sunrise": sunrise,
+            "sunset": sunset,
+            "civil_dawn": civil_dawn,
+            "civil_dusk": civil_dusk,
+            "nautical_dawn": nautical_dawn,
+            "nautical_dusk": nautical_dusk,
+            "astronomical_dawn": astronomical_dawn,
+            "astronomical_dusk": astronomical_dusk,
+            "blue_hour_dawn": blue_hour_dawn,
+            "blue_hour_dusk": blue_hour_dusk,
+            "golden_hour_dawn": golden_hour_dawn,
+            "golden_hour_dusk": golden_hour_dusk,
+        }
+        event_azimuths = {
+            name: self._round_azimuth(self._azimuth_at(moment))
+            for name, moment in events.items()
+            if moment is not None
+        }
+
         # Same bounds as the blue and golden hour events: no horizon dip, as twilights
         is_golden_hour = (
             self.ALTITUDE_BLUE_HOUR < true_elevation_deg <= self.ALTITUDE_GOLDEN_HOUR
@@ -607,10 +697,12 @@ class SolarEngine:
             declination=round(coords["declination"], 4),
             equation_of_time=round(coords["equation_of_time"], 2),
             sun_distance_au=round(coords["distance_au"], 6),
+            sun_distance_km=round(coords["distance_au"] * ASTRONOMICAL_UNIT_KM),
+            constellation=self._constellation(coords["true_longitude"], t_century),
             hour_angle=round(hour_angle_deg, 4),
             true_elevation=round(true_elevation_deg, 2),
             apparent_elevation=round(apparent_elevation_deg, 2),
-            azimuth=round(azimuth_deg, 2),
+            azimuth=self._round_azimuth(azimuth_deg),
             day_length_minutes=round(day_length_min, 2),
             solar_noon=solar_noon,
             solar_midnight=solar_midnight,
@@ -626,6 +718,7 @@ class SolarEngine:
             blue_hour_dusk=blue_hour_dusk,
             golden_hour_dawn=golden_hour_dawn,
             golden_hour_dusk=golden_hour_dusk,
+            event_azimuths=event_azimuths,
             # Sunrise/sunset thresholds apply to the geometric altitude: refraction is
             # already part of them, so comparing the apparent one would count it twice
             is_above_horizon=true_elevation_deg > self.sunrise_sunset_altitude,

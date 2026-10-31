@@ -2,7 +2,7 @@
 
 # Helios - Solar Position and Events for Home Assistant
 
-**Version:** `0.3.0`
+**Version:** `0.3.2`
 
 *Read this in: [English](#english-documentation) | [Français](#documentation-française)*
 
@@ -18,7 +18,7 @@
 
 * **Zero External Dependencies:** Uses exclusively Python's standard `math` and `datetime` libraries (`"requirements": []` in `manifest.json`).
 * **Decoupled Architecture:** `solar_engine.py` has zero Home Assistant imports, making unit testing and equation auditing effortless.
-* **Complete Solar Metrics:** Azimuth, apparent and geometric elevation, declination, right ascension, equation of time, Earth-Sun distance (AU), Julian Day, solar noon and midnight, sunrise/sunset, civil/nautical/astronomical twilights, and blue and golden hours.
+* **Complete Solar Metrics:** Azimuth, apparent and geometric elevation, declination, right ascension (degrees and h m s), equation of time, Earth-Sun distance (AU and km), the constellation the Sun is in, Julian Day, solar noon and midnight, sunrise/sunset, civil/nautical/astronomical twilights, and blue and golden hours, each with the Sun's azimuth at that time.
 
 ### Installation
 
@@ -39,13 +39,14 @@ The update interval paces the position sensors (azimuth, elevation…). Binary s
 
 | Entity | Unit | Notes |
 | --- | --- | --- |
-| Solar azimuth | ° | 0° = North, 90° = East |
-| Apparent solar elevation | ° | Includes atmospheric refraction |
-| True geometric solar elevation | ° | Diagnostic, without refraction |
-| Solar declination | ° | |
-| Solar right ascension | ° | Diagnostic |
+| Azimuth | ° | 0° = North, 90° = East |
+| Apparent elevation | ° | Includes atmospheric refraction |
+| True geometric elevation | ° | Diagnostic, without refraction |
+| Declination | ° | |
+| Right ascension | ° | Diagnostic; `hms` attribute in hours, minutes and seconds, such as `13h 13m 31.4s` |
 | Equation of time | min | Apparent minus mean solar time |
-| Earth-Sun distance | AU | Diagnostic |
+| Distance | AU | Earth-Sun distance, diagnostic; `distance_km` attribute in kilometres |
+| Constellation | | The constellation the Sun is in, among the 13 it crosses, Ophiuchus included |
 | Daylight duration | min | Time the Sun spends above the horizon during the solar day |
 | Julian Day | | Diagnostic |
 | Solar noon, Sunrise, Sunset | timestamp | |
@@ -55,6 +56,8 @@ The update interval paces the position sensors (azimuth, elevation…). Binary s
 | Blue and golden hour starts and ends | timestamp | Diagnostic, see [Blue and Golden Hours](#blue-and-golden-hours) |
 | Sun above horizon | on/off | On between sunrise and sunset |
 | Golden hour, Blue hour | on/off | On during the morning and evening golden or blue hour |
+
+Every timestamp has an `azimuth` attribute: the Sun's azimuth when the event happens (0° = North, 90° = East), such as where it rises or sets.
 
 ### Daily Events and the Solar Day
 
@@ -204,6 +207,7 @@ $$
   \Delta m = -\frac{H}{360^\circ} \ \text{(transits)}, \quad \Delta m = \frac{h_0 - h_{\text{target}}}{360^\circ\cos(\delta)\cos(\phi)\sin(H)} \ \text{(other events)}
   $$
 * **Daylight Duration:** sunset minus sunrise. On days without one of them (around the midnight sun), the matching solar midnight, taken as solar noon $\pm$ 12 h, bounds the daylight instead.
+* **Constellation:** the Sun's true longitude, less the general precession since J2000.0 (Chapter 21, Eq. 21.5), against the J2000.0 longitudes where the ecliptic crosses the IAU constellation boundaries. These were found with PyEphem and hold from 1900 to 2100; only the Libra–Scorpius one drifts noticeably (0.054° per century). The Sun changes constellation within 10 minutes of PyEphem's times.
 
 ---
 
@@ -217,7 +221,7 @@ $$
 
 * **Zéro dépendance externe :** Utilise exclusivement les modules standards `math` et `datetime` de Python (`"requirements": []` dans `manifest.json`).
 * **Maintenance simplifiée :** Le fichier `solar_engine.py` est totalement indépendant de Home Assistant. Vous pouvez le tester ou le modifier directement avec Python.
-* **Données complètes :** Azimut, élévation apparente et géométrique vraie, déclinaison, ascension droite, équation du temps, distance Terre-Soleil (UA), Jour Julien, midi et minuit solaires, lever/coucher du soleil, crépuscules civil, nautique et astronomique, heures bleue et dorée.
+* **Données complètes :** Azimut, élévation apparente et géométrique vraie, déclinaison, ascension droite (en degrés et en h m s), équation du temps, distance Terre-Soleil (en UA et en km), constellation où se trouve le soleil, Jour Julien, midi et minuit solaires, lever/coucher du soleil, crépuscules civil, nautique et astronomique, heures bleue et dorée, chacun avec l'azimut du soleil à ce moment.
 
 ### Installation
 
@@ -238,13 +242,14 @@ L'intervalle de mise à jour rythme les capteurs de position (azimut, élévatio
 
 | Entité | Unité | Remarques |
 | --- | --- | --- |
-| Azimut solaire | ° | 0° = Nord, 90° = Est |
-| Élévation solaire apparente | ° | Inclut la réfraction atmosphérique |
+| Azimut | ° | 0° = Nord, 90° = Est |
+| Élévation apparente | ° | Inclut la réfraction atmosphérique |
 | Élévation géométrique vraie | ° | Diagnostic, sans réfraction |
-| Déclinaison solaire | ° | |
-| Ascension droite solaire | ° | Diagnostic |
+| Déclinaison | ° | |
+| Ascension droite | ° | Diagnostic ; attribut `hms` en heures, minutes et secondes, par exemple `13h 13m 31.4s` |
 | Équation du temps | min | Temps solaire vrai moins temps solaire moyen |
-| Distance Terre-Soleil | UA | Diagnostic |
+| Distance | UA | Distance Terre-Soleil, diagnostic ; attribut `distance_km` en kilomètres |
+| Constellation | | Constellation où se trouve le soleil, parmi les 13 qu'il traverse, Ophiuchus compris |
 | Durée du jour | min | Temps passé par le soleil au-dessus de l'horizon pendant la journée solaire |
 | Jour Julien | | Diagnostic |
 | Midi solaire, Lever du soleil, Coucher du soleil | horodatage | |
@@ -254,6 +259,8 @@ L'intervalle de mise à jour rythme les capteurs de position (azimut, élévatio
 | Débuts et fins des heures bleue et dorée | horodatage | Diagnostic, voir [Heures bleue et dorée](#heures-bleue-et-dorée) |
 | Soleil au-dessus de l'horizon | on/off | Allumé entre le lever et le coucher |
 | Heure dorée, Heure bleue | on/off | Allumés pendant l'heure dorée ou bleue, du matin comme du soir |
+
+Chaque horodatage a un attribut `azimuth` : l'azimut du soleil au moment de l'événement (0° = Nord, 90° = Est), par exemple l'endroit où il se lève ou se couche.
 
 ### Événements quotidiens et journée solaire
 
@@ -291,3 +298,4 @@ Toutes les formules codées dans `custom_components/astraeos_helios/solar_engine
 9. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.3, p. 185).
 10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Chaque heure obtenue est ensuite corrigée avec la position du soleil à cet instant (p. 103), $\Delta m = -H/360^\circ$ pour un passage au méridien et $\Delta m = (h_0 - h_{\text{cible}})/(360^\circ\cos\delta\cos\phi\sin H)$ sinon, jusqu'à une correction inférieure à 10 ms : les capteurs binaires basculent aux heures affichées. Le soleil passe au méridien quand le temps solaire vrai vaut 12 h ($H = 0^\circ$) et au plus bas, au minuit solaire, quand il vaut 24 h ($H = 180^\circ$), soit $720 - 4L_{\text{est}} - E$ et $1440 - 4L_{\text{est}} - E$ minutes après 0 h UTC. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$, et $-4^\circ$ et $+6^\circ$ pour les heures bleue et dorée) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules et les heures bleue et dorée, définis par rapport à l'horizon astronomique, ne changent pas.
 11. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant, pris à midi solaire $\pm$ 12 h, qui borne la durée.
+12. **Constellation :** longitude vraie du soleil, moins la précession générale depuis J2000.0 (Chapitre 21, Éq. 21.5), comparée aux longitudes J2000.0 où l'écliptique croise les frontières des constellations de l'UAI. Ces longitudes ont été trouvées avec PyEphem et valent de 1900 à 2100 ; seule celle entre la Balance et le Scorpion dérive sensiblement (0,054° par siècle). Le soleil change de constellation à moins de 10 minutes des heures données par PyEphem.

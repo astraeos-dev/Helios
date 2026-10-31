@@ -34,13 +34,41 @@
         "name": "Declination"
       },
       "right_ascension": {
-        "name": "Right ascension"
+        "name": "Right ascension",
+        "state_attributes": {
+          "hms": {
+            "name": "Hours, minutes, seconds"
+          }
+        }
       },
       "equation_of_time": {
         "name": "Equation of time"
       },
       "sun_distance_au": {
-        "name": "Earth-Sun distance"
+        "name": "Distance",
+        "state_attributes": {
+          "distance_km": {
+            "name": "Distance (km)"
+          }
+        }
+      },
+      "constellation": {
+        "name": "Constellation",
+        "state": {
+          "aries": "Aries",
+          "taurus": "Taurus",
+          "gemini": "Gemini",
+          "cancer": "Cancer",
+          "leo": "Leo",
+          "virgo": "Virgo",
+          "libra": "Libra",
+          "scorpius": "Scorpius",
+          "ophiuchus": "Ophiuchus",
+          "sagittarius": "Sagittarius",
+          "capricornus": "Capricornus",
+          "aquarius": "Aquarius",
+          "pisces": "Pisces"
+        }
       },
       "day_length": {
         "name": "Daylight duration"
@@ -49,46 +77,116 @@
         "name": "Julian Day"
       },
       "solar_noon": {
-        "name": "Solar noon"
+        "name": "Solar noon",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "solar_midnight": {
-        "name": "Solar midnight"
+        "name": "Solar midnight",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "sunrise": {
-        "name": "Sunrise"
+        "name": "Sunrise",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "sunset": {
-        "name": "Sunset"
+        "name": "Sunset",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "civil_dawn": {
-        "name": "Civil dawn"
+        "name": "Civil dawn",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "civil_dusk": {
-        "name": "Civil dusk"
+        "name": "Civil dusk",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "nautical_dawn": {
-        "name": "Nautical dawn"
+        "name": "Nautical dawn",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "nautical_dusk": {
-        "name": "Nautical dusk"
+        "name": "Nautical dusk",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "astronomical_dawn": {
-        "name": "Astronomical dawn"
+        "name": "Astronomical dawn",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "astronomical_dusk": {
-        "name": "Astronomical dusk"
+        "name": "Astronomical dusk",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "blue_hour_dawn": {
-        "name": "Morning blue hour end"
+        "name": "Morning blue hour end",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "blue_hour_dusk": {
-        "name": "Evening blue hour start"
+        "name": "Evening blue hour start",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "golden_hour_dawn": {
-        "name": "Morning golden hour end"
+        "name": "Morning golden hour end",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       },
       "golden_hour_dusk": {
-        "name": "Evening golden hour start"
+        "name": "Evening golden hour start",
+        "state_attributes": {
+          "azimuth": {
+            "name": "Azimuth"
+          }
+        }
       }
     },
     "binary_sensor": {
