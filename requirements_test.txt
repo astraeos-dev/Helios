@@ -1,1 +1,3 @@
 pytest-homeassistant-custom-component
+# Reference for the astro package tests; never needed by the integration
+ephem
