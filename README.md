@@ -2,7 +2,7 @@
 
 # Helios - Solar Position and Events for Home Assistant
 
-**Version:** `0.3.1`
+**Version:** `0.3.2`
 
 *Read this in: [English](#english-documentation) | [Français](#documentation-française)*
 
