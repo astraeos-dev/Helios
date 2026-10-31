@@ -52,7 +52,7 @@ def write(name: str, docstring: str, assignments: list[tuple[str, str, str]]) ->
     ]
     for comment, variable, value in assignments:
         lines += ["", f"# {comment}", f"{variable} = {value}"]
-    (ASTRO / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (ASTRO / name).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def tuple_lines(items: list[str], per_line: int = 1) -> str:
