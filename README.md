@@ -17,6 +17,7 @@
 ### Key Features
 
 * **Zero External Dependencies:** Uses exclusively Python's standard `math` and `datetime` libraries (`"requirements": []` in `manifest.json`).
+* **PyEphem Accuracy:** The Sun's position comes from `astro`, a pure-Python port of libastro, the C core of PyEphem. It matches PyEphem to 0.001″ and can serve other projects.
 * **Decoupled Architecture:** `solar_engine.py` has zero Home Assistant imports, making unit testing and equation auditing effortless.
 * **Complete Solar Metrics:** Azimuth, apparent and geometric elevation, declination, right ascension (degrees and h m s), equation of time, Earth-Sun distance (AU and km), the constellation the Sun is in, Julian Day, solar noon and midnight, sunrise/sunset, civil/nautical/astronomical twilights, and blue and golden hours, each with the Sun's azimuth at that time.
 
@@ -82,7 +83,7 @@ The *Golden hour* and *Blue hour* binary sensors are on during these periods, mo
 
 ### Mathematical Reference & Equations Audit
 
-All calculations implemented in `custom_components/astraeos_helios/solar_engine.py` can be verified against **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)**:
+The Sun's position comes from the `astro` package (section 2). Daily events, refraction and the remaining formulas follow **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)**:
 
 #### 1. Julian Day ($JD$) and Julian Century ($T$) — *Chapter 7 (Eq. 7.1) & Chapter 25 (Eq. 25.1)*
 
@@ -100,73 +101,37 @@ $$
 T = \frac{JD - 2451545.0}{36525}
 $$
 
-#### 2. Solar Coordinates — *Chapter 25 (Eq. 25.2 to 25.8)*
+#### 2. Position of the Sun — *the `astro` package, ported from libastro*
 
-* **Geometric Mean Longitude of the Sun ($L_0$, Eq. 25.2):**
-  $$
-  L_0 = 280.46646^\circ + 36000.76983^\circ T + 0.0003032^\circ T^2 \pmod{360^\circ}
-  $$
-* **Mean Anomaly of the Sun ($M$, Eq. 25.3):**
-  $$
-  M = 357.52911^\circ + 35999.05029^\circ T - 0.0001537^\circ T^2 \pmod{360^\circ}
-  $$
-* **Eccentricity of Earth's Orbit ($e$, Eq. 25.4):**
-  $$
-  e = 0.016708634 - 0.000042037 T - 0.0000001267 T^2
-  $$
-* **Sun's Equation of the Center ($C$, p. 164):**
-  $$
-  C = (1.914602^\circ - 0.004817^\circ T - 0.000014^\circ T^2)\sin(M) + (0.019993^\circ - 0.000101^\circ T)\sin(2M) + 0.000289^\circ\sin(3M)
-  $$
-* **True Longitude ($\odot$), True Anomaly ($v$), and Earth-Sun Distance ($R$ in AU, Eq. 25.5):**
-  $$
-  \odot = L_0 + C, \quad v = M + C, \quad R = \frac{1.000001018(1 - e^2)}{1 + e\cos(v)}
-  $$
-* **Apparent Longitude ($\lambda$, Eq. 25.8):**
-  $$
-  \Omega = 125.04^\circ - 1934.136^\circ T, \quad \lambda = \odot - 0.00569^\circ - 0.00478^\circ\sin(\Omega)
-  $$
+`custom_components/astraeos_helios/astro/` is a pure-Python port of the parts of libastro, the C library at the heart of PyEphem, that place the Sun (MIT license, see `astro/LICENSE.txt`). It imports nothing from Home Assistant or from Helios, so other projects can use it. `scripts/extract_libastro.py` generates its data tables from libastro's sources.
 
-#### 3. Obliquity of the Ecliptic & Equatorial Coordinates — *Chapter 22 (Eq. 22.2) & Chapter 25 (Eq. 25.6–25.8)*
+| Step | Method |
+| --- | --- |
+| Time scales | $\Delta T$ = TT − UT: Astronomical Almanac table from 1620 to 2018, Morrison and Stephenson (2004) before, extrapolated after |
+| The Earth around the Sun | VSOP87D as truncated in libastro (406 terms), reduced to FK5 |
+| Nutation and obliquity | IAU 1980 nutation (106 terms) and mean obliquity |
+| Apparent place | Ecliptic to equator, nutation, annual aberration |
+| Sidereal time | IAU 1982 Greenwich mean sidereal time plus the equation of the equinoxes |
+| Observer | Parallax on the Earth's ellipsoid, then altitude and azimuth |
+| Constellation | IAU boundaries (Delporte 1930) at the B1875.0 equinox, method of Roman (1987) |
 
-* **Mean ($\varepsilon_0$) and Corrected Obliquity ($\varepsilon$):**
+Against PyEphem 4.2.1 over 3,000 random moments and places from 1900 to 2100: the same $\Delta T$, apparent right ascension and declination within 0.001″, altitude and azimuth within 0.05″ (PyEphem stores them in single precision), distance within $10^{-7}$ AU, and the same constellation. Daily events fall within 0.25 s of PyEphem's.
 
-  $$
-  \varepsilon_0 = 23^\circ 26' 21.448'' - 46.8150'' T - 0.00059'' T^2 + 0.001813'' T^3
-  $$
+The mean elements kept as diagnostics follow Chapter 25: $L_0$, $M$ and $e$ from Eq. 25.2 to 25.4, the equation of the center as $C = \odot - L_0$, and the apparent longitude $\odot + \Delta\psi - 20.4898''/R$ (Eq. 25.10).
 
-  $$
-  \varepsilon = \varepsilon_0 + 0.00256^\circ\cos(\Omega)
-  $$
-* **Right Ascension ($\alpha$, Eq. 25.6) and Declination ($\delta$, Eq. 25.7):**
+#### 3. Equation of Time ($E$) — *Chapter 28 (Eq. 28.1 and 28.2)*
 
-  $$
-  \tan(\alpha) = \frac{\cos(\varepsilon)\sin(\lambda)}{\cos(\lambda)}, \quad \sin(\delta) = \sin(\varepsilon)\sin(\lambda)
-  $$
+With $\tau$ in Julian millennia of TT from J2000.0 and $L_0$ the Sun's mean longitude referred to the mean equinox of date:
 
-#### 4. Sidereal Time & Horizontal Coordinates (Azimuth & Elevation) — *Chapter 12 (Eq. 12.4) & Chapter 13 (Eq. 13.5–13.6)*
+$$
+L_0 = 280.4664567^\circ + 360007.6982779^\circ\tau + 0.03032028^\circ\tau^2 + \frac{\tau^3}{49931} - \frac{\tau^4}{15300} - \frac{\tau^5}{2000000}
+$$
 
-* **Mean Sidereal Time at Greenwich ($\theta_0$, Eq. 12.4):**
+$$
+E = L_0 - 0.0057183^\circ - \alpha + \Delta\psi\cos\varepsilon
+$$
 
-  $$
-  \theta_0 = 280.46061837^\circ + 360.98564736629^\circ(JD - 2451545.0) + 0.000387933^\circ T^2 - \frac{T^3}{38710000}
-  $$
-* **Local Hour Angle ($H$) with East-positive longitude ($L_{\text{east}}$):**
-
-  $$
-  H = \theta_0 + L_{\text{east}} - \alpha
-  $$
-* **True Geometric Altitude ($h_0$, Eq. 13.6) and Compass Azimuth ($A_{\text{north}}$, Eq. 13.5):**
-
-  $$
-  \sin(h_0) = \sin(\phi)\sin(\delta) + \cos(\phi)\cos(\delta)\cos(H)
-  $$
-
-  $$
-  \tan(A_{\text{south}}) = \frac{\sin(H)}{\cos(H)\sin(\phi) - \tan(\delta)\cos(\phi)}, \quad A_{\text{north}} = (A_{\text{south}} + 180^\circ) \pmod{360^\circ}
-  $$
-
-#### 5. Atmospheric Refraction — *Chapter 16 (Saemundsson's Formula, Eq. 16.4)*
+#### 4. Atmospheric Refraction — *Chapter 16 (Saemundsson's Formula, Eq. 16.4)*
 
 $$
 R_{\text{arcmin}} = \frac{1.02}{\tan\left(h_0 + \frac{10.3}{h_0 + 5.11}\right)}, \quad h_{\text{apparent}} = h_0 + \frac{R_{\text{arcmin}}}{60}
@@ -178,14 +143,8 @@ $$
 R(h_0) = R(-1^\circ)\,\frac{\tan(1^\circ)}{\tan(-h_0)} \quad \text{for } h_0 < -1^\circ
 $$
 
-#### 6. Equation of Time ($E$) & Rising/Transit/Setting — *Chapter 28 (Eq. 28.3) & Chapter 15 (Eq. 15.1)*
+#### 5. Rising, Transit and Setting — *Chapter 15 (Eq. 15.1)*
 
-* **Equation of Time ($E$):**
-  With $y = \tan^2(\varepsilon / 2)$:
-
-  $$
-  E_{\text{rad}} = y\sin(2L_0) - 2e\sin(M) + 4ey\sin(M)\cos(2L_0) - \frac{1}{2}y^2\sin(4L_0) - \frac{5}{4}e^2\sin(2M)
-  $$
 * **Solar Noon and Solar Midnight:** the Sun crosses the meridian when apparent solar time is 12:00 ($H = 0^\circ$) and is at its lowest at 24:00 ($H = 180^\circ$). In minutes from 0h UTC, with $E$ refined at the event:
 
   $$
@@ -207,7 +166,7 @@ $$
   \Delta m = -\frac{H}{360^\circ} \ \text{(transits)}, \quad \Delta m = \frac{h_0 - h_{\text{target}}}{360^\circ\cos(\delta)\cos(\phi)\sin(H)} \ \text{(other events)}
   $$
 * **Daylight Duration:** sunset minus sunrise. On days without one of them (around the midnight sun), the matching solar midnight, taken as solar noon $\pm$ 12 h, bounds the daylight instead.
-* **Constellation:** the Sun's true longitude, less the general precession since J2000.0 (Chapter 21, Eq. 21.5), against the J2000.0 longitudes where the ecliptic crosses the IAU constellation boundaries. These were found with PyEphem and hold from 1900 to 2100; only the Libra–Scorpius one drifts noticeably (0.054° per century). The Sun changes constellation within 10 minutes of PyEphem's times.
+* **Constellation:** the Sun's mean position of date, precessed to B1875.0 and looked up in the IAU boundary table (section 2). The sensor shows the 13 constellations along the ecliptic.
 
 ---
 
@@ -220,6 +179,7 @@ $$
 ### Caractéristiques principales
 
 * **Zéro dépendance externe :** Utilise exclusivement les modules standards `math` et `datetime` de Python (`"requirements": []` dans `manifest.json`).
+* **Précision de PyEphem :** La position du soleil vient de `astro`, un portage en Python pur de libastro, le cœur en C de PyEphem. Il donne les mêmes valeurs que PyEphem à 0,001″ près et peut servir à d'autres projets.
 * **Maintenance simplifiée :** Le fichier `solar_engine.py` est totalement indépendant de Home Assistant. Vous pouvez le tester ou le modifier directement avec Python.
 * **Données complètes :** Azimut, élévation apparente et géométrique vraie, déclinaison, ascension droite (en degrés et en h m s), équation du temps, distance Terre-Soleil (en UA et en km), constellation où se trouve le soleil, Jour Julien, midi et minuit solaires, lever/coucher du soleil, crépuscules civil, nautique et astronomique, heures bleue et dorée, chacun avec l'azimut du soleil à ce moment.
 
@@ -285,17 +245,13 @@ Les capteurs binaires *Heure dorée* et *Heure bleue* sont allumés pendant ces 
 
 ### Références des équations pour vérification
 
-Toutes les formules codées dans `custom_components/astraeos_helios/solar_engine.py` suivent l'ouvrage **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)** :
+La position du soleil vient du paquet `astro` (point 2). Les événements quotidiens, la réfraction et les autres formules suivent l'ouvrage **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)** :
 
 1. **Jour Julien ($JD$) et Siècle Julien ($T$) :** Chapitre 7 (Éq. 7.1, p. 61) et Chapitre 25 (Éq. 25.1, p. 163).
-2. **Longitude moyenne ($L_0$), Anomalie moyenne ($M$) et Excentricité ($e$) :** Chapitre 25 (Éq. 25.2, 25.3 et 25.4, p. 163).
-3. **Équation du centre ($C$), Distance ($R$) et Longitude apparente ($\lambda$) :** Chapitre 25 (Éq. 25.5 et 25.8, p. 164).
-4. **Obliquité de l'écliptique ($\varepsilon_0, \varepsilon$) :** Chapitre 22 (Éq. 22.2, p. 147) et Chapitre 25 (Éq. 25.8, p. 165).
-5. **Coordonnées équatoriales (Ascension droite $\alpha$ et Déclinaison $\delta$) :** Chapitre 25 (Éq. 25.6 et 25.7, p. 165).
-6. **Temps sidéral à Greenwich ($\theta_0$) :** Chapitre 12 (Éq. 12.4, p. 88).
-7. **Coordonnées horizontales locales (Azimut $A$ et Hauteur vraie $h_0$) :** Chapitre 13 (Éq. 13.5 et 13.6, p. 93). *Note : l'ouvrage mesure l'azimut à partir du Sud vers l'Ouest ; le moteur y ajoute $180^\circ \pmod{360^\circ}$ pour fournir l'azimut géographique standard (Nord = $0^\circ$, Est = $90^\circ$).*
-8. **Réfraction atmosphérique ($R$) :** Chapitre 16 (Formule de Saemundsson, Éq. 16.4, p. 106). *Note : la formule n'est plus valable sous $-1^\circ$ environ ; en dessous, la réfraction décroît en $1/\tan(h_0)$ (forme utilisée par la NOAA sous l'horizon), raccordée à $-1^\circ$ pour que l'élévation apparente reste continue.*
-9. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.3, p. 185).
-10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Chaque heure obtenue est ensuite corrigée avec la position du soleil à cet instant (p. 103), $\Delta m = -H/360^\circ$ pour un passage au méridien et $\Delta m = (h_0 - h_{\text{cible}})/(360^\circ\cos\delta\cos\phi\sin H)$ sinon, jusqu'à une correction inférieure à 10 ms : les capteurs binaires basculent aux heures affichées. Le soleil passe au méridien quand le temps solaire vrai vaut 12 h ($H = 0^\circ$) et au plus bas, au minuit solaire, quand il vaut 24 h ($H = 180^\circ$), soit $720 - 4L_{\text{est}} - E$ et $1440 - 4L_{\text{est}} - E$ minutes après 0 h UTC. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$, et $-4^\circ$ et $+6^\circ$ pour les heures bleue et dorée) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules et les heures bleue et dorée, définis par rapport à l'horizon astronomique, ne changent pas.
-11. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant, pris à midi solaire $\pm$ 12 h, qui borne la durée.
-12. **Constellation :** longitude vraie du soleil, moins la précession générale depuis J2000.0 (Chapitre 21, Éq. 21.5), comparée aux longitudes J2000.0 où l'écliptique croise les frontières des constellations de l'UAI. Ces longitudes ont été trouvées avec PyEphem et valent de 1900 à 2100 ; seule celle entre la Balance et le Scorpion dérive sensiblement (0,054° par siècle). Le soleil change de constellation à moins de 10 minutes des heures données par PyEphem.
+2. **Position du soleil :** paquet `astro` (`custom_components/astraeos_helios/astro/`), un portage en Python pur des parties de libastro, la bibliothèque C au cœur de PyEphem, qui placent le soleil (licence MIT, voir `astro/LICENSE.txt`). Il n'importe rien de Home Assistant ni de Helios et peut donc servir à d'autres projets ; `scripts/extract_libastro.py` génère ses tables depuis les sources de libastro. Il enchaîne $\Delta T$ = TT − UT (table de l'Astronomical Almanac de 1620 à 2018, Morrison et Stephenson 2004 avant, extrapolation après), la position de la Terre autour du soleil par VSOP87D tronquée comme dans libastro (406 termes, ramenée au FK5), la nutation UAI 1980 (106 termes) et l'obliquité moyenne, le passage à l'équateur avec nutation et aberration annuelle, le temps sidéral (temps sidéral moyen de Greenwich UAI 1982 et équation des équinoxes), la parallaxe sur l'ellipsoïde terrestre, puis la hauteur et l'azimut. Comparé à PyEphem 4.2.1 sur 3 000 instants et lieux tirés au hasard de 1900 à 2100 : même $\Delta T$, ascension droite et déclinaison apparentes à 0,001″ près, hauteur et azimut à 0,05″ (PyEphem les stocke en simple précision), distance à $10^{-7}$ UA, même constellation ; les événements quotidiens tombent à moins de 0,25 s de ceux de PyEphem.
+3. **Éléments moyens (diagnostic) :** Chapitre 25 (Éq. 25.2 à 25.4, p. 163) pour $L_0$, $M$ et $e$, avec l'équation du centre $C = \odot - L_0$ et la longitude apparente $\odot + \Delta\psi - 20.4898''/R$ (Éq. 25.10).
+4. **Réfraction atmosphérique ($R$) :** Chapitre 16 (Formule de Saemundsson, Éq. 16.4, p. 106). *Note : la formule n'est plus valable sous $-1^\circ$ environ ; en dessous, la réfraction décroît en $1/\tan(h_0)$ (forme utilisée par la NOAA sous l'horizon), raccordée à $-1^\circ$ pour que l'élévation apparente reste continue.*
+5. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.1 et 28.2, p. 183) : $E = L_0 - 0.0057183^\circ - \alpha + \Delta\psi\cos\varepsilon$, où $L_0$ est la longitude moyenne du soleil rapportée à l'équinoxe moyen de la date.
+6. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Chaque heure obtenue est ensuite corrigée avec la position du soleil à cet instant (p. 103), $\Delta m = -H/360^\circ$ pour un passage au méridien et $\Delta m = (h_0 - h_{\text{cible}})/(360^\circ\cos\delta\cos\phi\sin H)$ sinon, jusqu'à une correction inférieure à 10 ms : les capteurs binaires basculent aux heures affichées. Le soleil passe au méridien quand le temps solaire vrai vaut 12 h ($H = 0^\circ$) et au plus bas, au minuit solaire, quand il vaut 24 h ($H = 180^\circ$), soit $720 - 4L_{\text{est}} - E$ et $1440 - 4L_{\text{est}} - E$ minutes après 0 h UTC. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$, et $-4^\circ$ et $+6^\circ$ pour les heures bleue et dorée) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules et les heures bleue et dorée, définis par rapport à l'horizon astronomique, ne changent pas.
+7. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant, pris à midi solaire $\pm$ 12 h, qui borne la durée.
+8. **Constellation :** position moyenne du soleil à la date, précessée à l'équinoxe B1875.0 puis cherchée dans la table des frontières de l'UAI (Delporte 1930, méthode de Roman 1987, voir le point 2). Le capteur montre les 13 constellations de l'écliptique.
