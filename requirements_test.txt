@@ -1,3 +1,3 @@
 pytest-homeassistant-custom-component
-# Reference for the astro package tests; never needed by the integration
-ephem
+# The integration's requirement from manifest.json, which tests install themselves
+astraeos-astro==0.1.0

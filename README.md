@@ -12,12 +12,12 @@
 
 ## English Documentation
 
-**Helios** is a lightweight, zero-dependency Home Assistant custom integration that calculates solar position and daily solar events from established astronomical equations (see the [mathematical reference](#mathematical-reference--equations-audit)).
+**Helios** is a lightweight, pure-Python Home Assistant custom integration that calculates solar position and daily solar events from established astronomical equations (see the [mathematical reference](#mathematical-reference--equations-audit)).
 
 ### Key Features
 
-* **Zero External Dependencies:** Uses exclusively Python's standard `math` and `datetime` libraries (`"requirements": []` in `manifest.json`).
-* **PyEphem Accuracy:** The Sun's position comes from `astro`, a pure-Python port of libastro, the C core of PyEphem. It matches PyEphem to 0.001″ and can serve other projects.
+* **Pure Python:** Helios and its only requirement, astraeos-astro, use nothing but the Python standard library. There is no compiled code, and Home Assistant installs the requirement by itself.
+* **PyEphem Accuracy:** The Sun's position comes from [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro), a pure-Python port of libastro, the C core of PyEphem, published on PyPI. It matches PyEphem to 0.001″.
 * **Decoupled Architecture:** `solar_engine.py` has zero Home Assistant imports, making unit testing and equation auditing effortless.
 * **Complete Solar Metrics:** Azimuth, apparent and geometric elevation, declination, right ascension (degrees and h m s), equation of time, Earth-Sun distance (AU and km), the constellation the Sun is in, Julian Day, solar noon and midnight, sunrise/sunset, civil/nautical/astronomical twilights, and blue and golden hours, each with the Sun's azimuth at that time.
 
@@ -83,7 +83,7 @@ The *Golden hour* and *Blue hour* binary sensors are on during these periods, mo
 
 ### Mathematical Reference & Equations Audit
 
-The Sun's position comes from the `astro` package (section 2). Daily events, refraction and the remaining formulas follow **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)**:
+The Sun's position comes from the astraeos-astro library (section 2). Daily events, refraction and the remaining formulas follow **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)**:
 
 #### 1. Julian Day ($JD$) and Julian Century ($T$) — *Chapter 7 (Eq. 7.1) & Chapter 25 (Eq. 25.1)*
 
@@ -101,9 +101,9 @@ $$
 T = \frac{JD - 2451545.0}{36525}
 $$
 
-#### 2. Position of the Sun — *the `astro` package, ported from libastro*
+#### 2. Position of the Sun — *astraeos-astro, ported from libastro*
 
-`custom_components/astraeos_helios/astro/` is a pure-Python port of the parts of libastro, the C library at the heart of PyEphem, that place the Sun (MIT license, see `astro/LICENSE.txt`). It imports nothing from Home Assistant or from Helios, so other projects can use it. `scripts/extract_libastro.py` generates its data tables from libastro's sources.
+[astraeos-astro](https://github.com/astraeos-dev/astraeos-astro), published on PyPI, is a pure-Python port of the parts of libastro, the C library at the heart of PyEphem, that place the Sun (MIT license). It started in Helios and now has its own repository, where its tests compare it with PyEphem and a script generates its data tables from libastro's sources.
 
 | Step | Method |
 | --- | --- |
@@ -174,12 +174,12 @@ $$
 
 ## Documentation Française
 
-**Helios** est une intégration personnalisée pour Home Assistant, sans aucune bibliothèque tierce, qui calcule la position du soleil et les heures solaires quotidiennes à partir d'équations astronomiques éprouvées (voir les [références des équations](#références-des-équations-pour-vérification)).
+**Helios** est une intégration personnalisée pour Home Assistant, en Python pur, qui calcule la position du soleil et les heures solaires quotidiennes à partir d'équations astronomiques éprouvées (voir les [références des équations](#références-des-équations-pour-vérification)).
 
 ### Caractéristiques principales
 
-* **Zéro dépendance externe :** Utilise exclusivement les modules standards `math` et `datetime` de Python (`"requirements": []` dans `manifest.json`).
-* **Précision de PyEphem :** La position du soleil vient de `astro`, un portage en Python pur de libastro, le cœur en C de PyEphem. Il donne les mêmes valeurs que PyEphem à 0,001″ près et peut servir à d'autres projets.
+* **Python pur :** Helios et sa seule dépendance, astraeos-astro, n'utilisent que la bibliothèque standard de Python. Il n'y a aucun code compilé, et Home Assistant installe cette dépendance tout seul.
+* **Précision de PyEphem :** La position du soleil vient de [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro), un portage en Python pur de libastro, le cœur en C de PyEphem, publié sur PyPI. Il donne les mêmes valeurs que PyEphem à 0,001″ près.
 * **Maintenance simplifiée :** Le fichier `solar_engine.py` est totalement indépendant de Home Assistant. Vous pouvez le tester ou le modifier directement avec Python.
 * **Données complètes :** Azimut, élévation apparente et géométrique vraie, déclinaison, ascension droite (en degrés et en h m s), équation du temps, distance Terre-Soleil (en UA et en km), constellation où se trouve le soleil, Jour Julien, midi et minuit solaires, lever/coucher du soleil, crépuscules civil, nautique et astronomique, heures bleue et dorée, chacun avec l'azimut du soleil à ce moment.
 
@@ -245,10 +245,10 @@ Les capteurs binaires *Heure dorée* et *Heure bleue* sont allumés pendant ces 
 
 ### Références des équations pour vérification
 
-La position du soleil vient du paquet `astro` (point 2). Les événements quotidiens, la réfraction et les autres formules suivent l'ouvrage **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)** :
+La position du soleil vient de la bibliothèque astraeos-astro (point 2). Les événements quotidiens, la réfraction et les autres formules suivent l'ouvrage **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)** :
 
 1. **Jour Julien ($JD$) et Siècle Julien ($T$) :** Chapitre 7 (Éq. 7.1, p. 61) et Chapitre 25 (Éq. 25.1, p. 163).
-2. **Position du soleil :** paquet `astro` (`custom_components/astraeos_helios/astro/`), un portage en Python pur des parties de libastro, la bibliothèque C au cœur de PyEphem, qui placent le soleil (licence MIT, voir `astro/LICENSE.txt`). Il n'importe rien de Home Assistant ni de Helios et peut donc servir à d'autres projets ; `scripts/extract_libastro.py` génère ses tables depuis les sources de libastro. Il enchaîne $\Delta T$ = TT − UT (table de l'Astronomical Almanac de 1620 à 2018, Morrison et Stephenson 2004 avant, extrapolation après), la position de la Terre autour du soleil par VSOP87D tronquée comme dans libastro (406 termes, ramenée au FK5), la nutation UAI 1980 (106 termes) et l'obliquité moyenne, le passage à l'équateur avec nutation et aberration annuelle, le temps sidéral (temps sidéral moyen de Greenwich UAI 1982 et équation des équinoxes), la parallaxe sur l'ellipsoïde terrestre, puis la hauteur et l'azimut. Comparé à PyEphem 4.2.1 sur 3 000 instants et lieux tirés au hasard de 1900 à 2100 : même $\Delta T$, ascension droite et déclinaison apparentes à 0,001″ près, hauteur et azimut à 0,05″ (PyEphem les stocke en simple précision), distance à $10^{-7}$ UA, même constellation ; les événements quotidiens tombent à moins de 0,25 s de ceux de PyEphem.
+2. **Position du soleil :** bibliothèque [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro), publiée sur PyPI, un portage en Python pur des parties de libastro, la bibliothèque C au cœur de PyEphem, qui placent le soleil (licence MIT). Née dans Helios, elle a désormais son propre dépôt, où ses tests la comparent à PyEphem et un script génère ses tables depuis les sources de libastro. Elle enchaîne $\Delta T$ = TT − UT (table de l'Astronomical Almanac de 1620 à 2018, Morrison et Stephenson 2004 avant, extrapolation après), la position de la Terre autour du soleil par VSOP87D tronquée comme dans libastro (406 termes, ramenée au FK5), la nutation UAI 1980 (106 termes) et l'obliquité moyenne, le passage à l'équateur avec nutation et aberration annuelle, le temps sidéral (temps sidéral moyen de Greenwich UAI 1982 et équation des équinoxes), la parallaxe sur l'ellipsoïde terrestre, puis la hauteur et l'azimut. Comparé à PyEphem 4.2.1 sur 3 000 instants et lieux tirés au hasard de 1900 à 2100 : même $\Delta T$, ascension droite et déclinaison apparentes à 0,001″ près, hauteur et azimut à 0,05″ (PyEphem les stocke en simple précision), distance à $10^{-7}$ UA, même constellation ; les événements quotidiens tombent à moins de 0,25 s de ceux de PyEphem.
 3. **Éléments moyens (diagnostic) :** Chapitre 25 (Éq. 25.2 à 25.4, p. 163) pour $L_0$, $M$ et $e$, avec l'équation du centre $C = \odot - L_0$ et la longitude apparente $\odot + \Delta\psi - 20.4898''/R$ (Éq. 25.10).
 4. **Réfraction atmosphérique ($R$) :** Chapitre 16 (Formule de Saemundsson, Éq. 16.4, p. 106). *Note : la formule n'est plus valable sous $-1^\circ$ environ ; en dessous, la réfraction décroît en $1/\tan(h_0)$ (forme utilisée par la NOAA sous l'horizon), raccordée à $-1^\circ$ pour que l'élévation apparente reste continue.*
 5. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.1 et 28.2, p. 183) : $E = L_0 - 0.0057183^\circ - \alpha + \Delta\psi\cos\varepsilon$, où $L_0$ est la longitude moyenne du soleil rapportée à l'équinoxe moyen de la date.

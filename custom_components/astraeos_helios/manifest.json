@@ -8,6 +8,6 @@
 "documentation": "https://github.com/astraeos-dev/Helios",
 "iot_class": "calculated",
 "issue_tracker": "https://github.com/astraeos-dev/Helios/issues",
-"requirements": [],
+"requirements": ["astraeos-astro==0.1.0"],
 "version": "0.3.2"
 }

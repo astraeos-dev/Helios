@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import types
 
+from astraeos_astro import sun_position
 import pytest
 
 # Import the engine without the integration's __init__, which needs Home Assistant
@@ -18,7 +19,6 @@ if "astraeos_helios" not in sys.modules:
     ]
     sys.modules["astraeos_helios"] = _package
 solar_engine = importlib.import_module("astraeos_helios.solar_engine")
-sun_position = importlib.import_module("astraeos_helios.astro").sun_position
 
 SolarEngine = solar_engine.SolarEngine
 

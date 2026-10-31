@@ -1,7 +1,7 @@
 """Pure Python solar calculation engine.
 
-The Sun's position comes from the astro package, a port of libastro (the C core
-of PyEphem): VSOP87, IAU 1980 nutation, aberration, Delta T and parallax. Daily
+The Sun's position comes from astraeos-astro, a port of libastro (the C core of
+PyEphem): VSOP87, IAU 1980 nutation, aberration, Delta T and parallax. Daily
 events, refraction and the other chapter references follow Astronomical
 Algorithms (J. Meeus, 2nd edition, Willmann-Bell, 1998).
 """
@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 import functools
 import math
 
-from .astro import (
+from astraeos_astro import (
     SunObservation,
     SunPosition,
     constellation,
