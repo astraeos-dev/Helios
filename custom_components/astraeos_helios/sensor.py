@@ -111,7 +111,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         key="constellation",
         translation_key="constellation",
         device_class=SensorDeviceClass.ENUM,
-        options=[name for _, _, name in SolarEngine.CONSTELLATION_BOUNDARIES],
+        options=list(SolarEngine.CONSTELLATIONS.values()),
         icon="mdi:star-four-points",
         value_fn=lambda data: data.constellation,
     ),

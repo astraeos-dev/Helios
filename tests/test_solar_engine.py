@@ -3,23 +3,22 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-import importlib.util
+import importlib
 from pathlib import Path
 import sys
+import types
 
+from astraeos_astro import sun_position
 import pytest
 
-# Load solar_engine.py directly so the tests don't need Home Assistant installed
-_MODULE_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "custom_components"
-    / "astraeos_helios"
-    / "solar_engine.py"
-)
-_spec = importlib.util.spec_from_file_location("solar_engine", _MODULE_PATH)
-solar_engine = importlib.util.module_from_spec(_spec)
-sys.modules["solar_engine"] = solar_engine
-_spec.loader.exec_module(solar_engine)
+# Import the engine without the integration's __init__, which needs Home Assistant
+if "astraeos_helios" not in sys.modules:
+    _package = types.ModuleType("astraeos_helios")
+    _package.__path__ = [
+        str(Path(__file__).resolve().parents[1] / "custom_components" / "astraeos_helios")
+    ]
+    sys.modules["astraeos_helios"] = _package
+solar_engine = importlib.import_module("astraeos_helios.solar_engine")
 
 SolarEngine = solar_engine.SolarEngine
 
@@ -47,24 +46,19 @@ def test_naive_datetime_treated_as_utc() -> None:
     assert SolarEngine.to_julian_day(naive) == SolarEngine.to_julian_day(aware)
 
 
-def test_solar_coordinates_meeus_example_25a() -> None:
-    """1992 October 13.0 TD (Meeus Example 25.a and 28.b)."""
-    jd = SolarEngine.to_julian_day(datetime(1992, 10, 13, tzinfo=timezone.utc))
-    assert jd == pytest.approx(2448908.5)
-
-    t_century = SolarEngine.to_julian_century(jd)
-    assert t_century == pytest.approx(-0.072183436, abs=1e-9)
-
-    coords = SolarEngine._solar_coordinates(t_century)
-    assert coords["l0"] == pytest.approx(201.80720, abs=1e-4)
-    assert coords["m_deg"] == pytest.approx(278.99397, abs=1e-4)
-    assert coords["eccentricity"] == pytest.approx(0.016711668, abs=1e-9)
-    assert coords["true_longitude"] == pytest.approx(199.90988, abs=1e-4)
-    assert coords["apparent_longitude"] == pytest.approx(199.90895, abs=1e-4)
-    assert coords["distance_au"] == pytest.approx(0.99766, abs=1e-5)
-    assert coords["right_ascension"] == pytest.approx(198.38083, abs=1e-3)
-    assert coords["declination"] == pytest.approx(-7.78507, abs=1e-3)
-    assert coords["equation_of_time"] == pytest.approx(13.71, abs=0.05)
+def test_sun_position_meeus_examples_25b_and_28a() -> None:
+    """1992 October 13.0 TD: α = 13h13m30.749s, δ = -7°47'01.74" with the full VSOP87
+    (Meeus Example 25.b), equation of time 13m42.6s (Example 28.a)."""
+    position = sun_position(2448908.5)
+    assert position.right_ascension == pytest.approx(
+        (13 + 13 / 60 + 30.749 / 3600) * 15, abs=0.1 / 3600
+    )
+    assert position.declination == pytest.approx(
+        -(7 + 47 / 60 + 1.74 / 3600), abs=0.1 / 3600
+    )
+    assert SolarEngine._equation_of_time(position) == pytest.approx(
+        13 + 42.6 / 60, abs=0.1 / 60
+    )
 
 
 def test_daily_events_are_ordered() -> None:
@@ -543,15 +537,14 @@ def test_degrees_to_hms() -> None:
 
 
 def test_distance_in_km() -> None:
-    """2024 perihelion and aphelion, as PyEphem gives them: the low-accuracy series
-    (Meeus Chapter 25) stays within 5e-5 AU, about 7500 km."""
+    """2024 perihelion and aphelion, as PyEphem gives them."""
     engine = SolarEngine(*PARIS)
     for moment, au in (
         (datetime(2024, 1, 3, 0, 39, tzinfo=timezone.utc), 0.983307),
         (datetime(2024, 7, 5, 5, 6, tzinfo=timezone.utc), 1.016726),
     ):
         data = engine.calculate(moment)
-        assert data.sun_distance_au == pytest.approx(au, abs=5e-5)
+        assert data.sun_distance_au == pytest.approx(au, abs=1e-6)
         assert data.sun_distance_km == pytest.approx(
             data.sun_distance_au * solar_engine.ASTRONOMICAL_UNIT_KM, abs=150
         )
@@ -576,9 +569,9 @@ CONSTELLATION_ENTRIES_2024 = (
 
 
 def test_constellation_through_the_year() -> None:
-    """The Sun crosses 13 constellations, Ophiuchus included, within 15 min."""
+    """The Sun crosses 13 constellations, Ophiuchus included, on PyEphem's minute."""
     engine = SolarEngine(*PARIS)
-    margin = timedelta(minutes=15)
+    margin = timedelta(minutes=1)
     previous = CONSTELLATION_ENTRIES_2024[-1][1]
     for entry, name in CONSTELLATION_ENTRIES_2024:
         moment = datetime.fromisoformat(entry).replace(tzinfo=timezone.utc)
@@ -590,10 +583,10 @@ def test_constellation_through_the_year() -> None:
 @pytest.mark.parametrize(
     "entry", ["1950-11-23T04:53", "2100-11-24T17:45"], ids=["1950", "2100"]
 )
-def test_scorpius_boundary_drifts(entry: str) -> None:
+def test_scorpius_entry_far_from_2000(entry: str) -> None:
     """The ecliptic slides along the slanted Libra-Scorpius boundary over time."""
     engine = SolarEngine(*PARIS)
     moment = datetime.fromisoformat(entry).replace(tzinfo=timezone.utc)
-    margin = timedelta(minutes=15)
+    margin = timedelta(minutes=1)
     assert engine.calculate(moment - margin).constellation == "libra"
     assert engine.calculate(moment + margin).constellation == "scorpius"
