@@ -15,7 +15,7 @@
 
 **Install**: search for **Helios** in HACS. An idea, a problem? [Open a request](https://github.com/astraeos-dev/Helios/issues/new/choose).
 
-**Active project** · one of the Astraeos projects: [website](https://astraeos-dev.github.io/personnal-site/#/helios) · [Céleste](https://github.com/astraeos-dev/Celeste_App) · [Céleste for Home Assistant](https://github.com/astraeos-dev/Celeste_HA) · [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro)
+**Active project** · one of the Astraeos projects: [website](https://astraeos-dev.github.io/Gaia/#/helios) · [Céleste](https://github.com/astraeos-dev/Celeste_App) · [Céleste for Home Assistant](https://github.com/astraeos-dev/Celeste_HA) · [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro)
 
 *Read this in: [English](#english-documentation) | [Français](#documentation-française)*
 
