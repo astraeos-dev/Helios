@@ -13,7 +13,7 @@
 
 <a href="https://buymeacoffee.com/gregorychau"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="40"></a>
 
-**Install**: search for **Helios** in HACS. An idea, a problem? [Open a request](https://github.com/astraeos-dev/Helios/issues/new).
+**Install**: search for **Helios** in HACS. An idea, a problem? [Open a request](https://github.com/astraeos-dev/Helios/issues/new/choose).
 
 **Active project** · one of the Astraeos projects: [website](https://astraeos-dev.github.io/personnal-site/#/helios) · [Céleste](https://github.com/astraeos-dev/Celeste_App) · [Céleste for Home Assistant](https://github.com/astraeos-dev/Celeste_HA) · [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro)
 
