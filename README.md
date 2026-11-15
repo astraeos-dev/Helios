@@ -1,8 +1,21 @@
 <p align="center"><img src="assets/brand/icon.svg" width="128" height="128" alt="Helios"></p>
 
-# Helios - Solar Position and Events for Home Assistant
+# Helios — Solar Position and Events for Home Assistant
 
-**Version:** `0.3.2`
+> A Home Assistant integration that computes the Sun's position and its daily events, from sunrise to the golden and blue hours, with the accuracy of PyEphem.
+
+[![Version](https://img.shields.io/github/v/release/astraeos-dev/Helios?label=version&color=f2b84b)](https://github.com/astraeos-dev/Helios/releases/latest)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz/)
+[![Validate](https://github.com/astraeos-dev/Helios/actions/workflows/validate.yml/badge.svg)](https://github.com/astraeos-dev/Helios/actions/workflows/validate.yml)
+[![MIT licence](https://img.shields.io/github/license/astraeos-dev/Helios?label=licence)](LICENSE)
+[![GitHub repository](https://img.shields.io/github/stars/astraeos-dev/Helios?style=social&label=Repository)](https://github.com/astraeos-dev/Helios)
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.4%2B-41BDF5?logo=homeassistant)
+
+<a href="https://buymeacoffee.com/gregorychau"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="40"></a>
+
+**Install**: search for **Helios** in HACS. An idea, a problem? [Open a request](https://github.com/astraeos-dev/Helios/issues/new).
+
+**Active project** · one of the Astraeos projects: [website](https://astraeos-dev.github.io/personnal-site/#/helios) · [Céleste](https://github.com/astraeos-dev/Celeste_App) · [Céleste for Home Assistant](https://github.com/astraeos-dev/Celeste_HA) · [astraeos-astro](https://github.com/astraeos-dev/astraeos-astro)
 
 *Read this in: [English](#english-documentation) | [Français](#documentation-française)*
 
@@ -23,14 +36,16 @@
 
 ### Installation
 
-Helios requires Home Assistant 2025.4 or later.
+Helios requires Home Assistant 2025.4 or later. Install it in one of these ways:
 
-1. **Via HACS:** Add `https://github.com/astraeos-dev/Helios` as a custom repository (category *Integration*), then install **Helios**, or use this button:
+* **Via HACS (recommended):** Helios is in the HACS default store. Open HACS, search for **Helios**, download it, then restart Home Assistant. This button opens it in HACS:
 
-   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=astraeos-dev&repository=Helios&category=integration)
+  [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=astraeos-dev&repository=Helios&category=integration)
 
-2. **Manual:** Copy the `custom_components/astraeos_helios` folder into the `custom_components/` directory of your Home Assistant configuration, then restart Home Assistant.
-3. Go to **Settings -> Devices & services -> Add integration** and search for **Helios**.
+* **As a custom repository:** if your HACS does not list Helios yet, add `https://github.com/astraeos-dev/Helios` as a custom repository (category *Integration*), then download **Helios** and restart Home Assistant.
+* **Manual:** Copy the `custom_components/astraeos_helios` folder into the `custom_components/` directory of your Home Assistant configuration, then restart Home Assistant.
+
+Then go to **Settings → Devices & services → Add integration** and search for **Helios**.
 
 The elevation (−500 to 9000 m) and the update interval (10 to 3600 seconds, 60 by default) can be changed later from the integration options. Elevation lowers the visible horizon, so the Sun rises earlier and sets later; set it to 0 to get almanac times.
 
@@ -185,14 +200,16 @@ $$
 
 ### Installation
 
-Helios nécessite Home Assistant 2025.4 ou plus récent.
+Helios nécessite Home Assistant 2025.4 ou plus récent. Installez-le de l'une de ces façons :
 
-1. **Via HACS :** Ajoutez `https://github.com/astraeos-dev/Helios` en tant que dépôt personnalisé (*Custom Repository*, catégorie *Integration*), puis installez **Helios**, ou utilisez ce bouton :
+* **Via HACS (recommandé) :** Helios fait partie du catalogue par défaut de HACS. Ouvrez HACS, recherchez **Helios**, téléchargez-le, puis redémarrez Home Assistant. Ce bouton l'ouvre dans HACS :
 
-   [![Ouvrir le dépôt dans le Home Assistant Community Store de votre instance Home Assistant.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=astraeos-dev&repository=Helios&category=integration)
+  [![Ouvrir le dépôt dans le Home Assistant Community Store de votre instance Home Assistant.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=astraeos-dev&repository=Helios&category=integration)
 
-2. **Manuelle :** Copiez le dossier `custom_components/astraeos_helios` dans le répertoire `custom_components/` de votre configuration Home Assistant, puis redémarrez Home Assistant.
-3. Allez dans **Paramètres -> Appareils et services -> Ajouter une intégration** et recherchez **Helios**.
+* **En dépôt personnalisé :** si votre HACS ne propose pas encore Helios, ajoutez `https://github.com/astraeos-dev/Helios` en tant que dépôt personnalisé (*Custom Repository*, catégorie *Integration*), puis téléchargez **Helios** et redémarrez Home Assistant.
+* **Manuelle :** Copiez le dossier `custom_components/astraeos_helios` dans le répertoire `custom_components/` de votre configuration Home Assistant, puis redémarrez Home Assistant.
+
+Allez ensuite dans **Paramètres → Appareils et services → Ajouter une intégration** et recherchez **Helios**.
 
 L'altitude (de −500 à 9000 m) et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défaut) se modifient ensuite dans les options de l'intégration. L'altitude abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides.
 
